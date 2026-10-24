@@ -2,11 +2,1093 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PAVfinder — Carte des PAV de déchets alimentaires</title>
+  <meta name="description" content="Carte interactive des points d'apport volontaire (PAV) de déchets alimentaires et biodéchets dans 8 métropoles françaises : Paris, Lyon, Toulouse, Nantes, Bordeaux, Montpellier, Rennes, Lille.">
+
+  <!-- Favicon SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  
+  <!-- Leaflet MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+  <style>
+    :root {
+      --primary: #15803d;
+      --primary-dark: #166534;
+      --primary-light: #dcfce7;
+      --pav-color: #16a34a;
+      --pav-dark: #14532d;
+      --bg-white: rgba(255, 255, 255, 0.95);
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      height: 100%;
+      width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text-main);
+      background-color: #f3f4f6;
+      overflow: hidden;
+    }
+
+    /* Carte plein écran */
+    #map {
+      height: 100vh;
+      width: 100vw;
+      z-index: 1;
+    }
+
+    /* Header discret */
+    .top-bar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-white);
+      backdrop-filter: blur(10px);
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      pointer-events: auto;
+      max-width: 1150px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      font-size: 1.5rem;
+      background: var(--primary-light);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      color: var(--pav-dark);
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-count {
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      border: 1px solid #a7f3d0;
+      white-space: nowrap;
+    }
+
+    .btn-icon {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-icon:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+
+    /* Barre de filtres métropoles */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 2px 6px 2px;
+      pointer-events: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      max-width: 100%;
+    }
+
+    .filter-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .city-btn {
+      background: var(--bg-white);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      color: var(--text-main);
+      padding: 7px 13px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .city-btn:hover {
+      background: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .city-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 10px rgba(21, 128, 61, 0.35);
+    }
+
+    .city-btn .count {
+      font-size: 0.7rem;
+      opacity: 0.85;
+      background: rgba(0, 0, 0, 0.08);
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+
+    .city-btn.active .count {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Bouton flottant de géolocalisation */
+    .geo-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 14px;
+      z-index: 1000;
+      background: #ffffff;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 50px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .geo-btn:hover {
+      background: #f9fafb;
+      transform: translateY(-2px);
+    }
+
+    .geo-btn.loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    /* Légende discrète */
+    .legend-badge {
+      position: absolute;
+      bottom: 24px;
+      left: 14px;
+      z-index: 1000;
+      background: var(--bg-white);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 20px;
+      padding: 8px 14px;
+      box-shadow: var(--shadow-md);
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--pav-color);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.4);
+      flex-shrink: 0;
+    }
+
+    /* Modale Informations */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: #ffffff;
+      border-radius: 16px;
+      max-width: 620px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal h2 {
+      font-size: 1.25rem;
+      font-weight: 750;
+      color: #14532d;
+      margin-bottom: 8px;
+    }
+
+    .modal p {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+
+    .modal h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .modal ul {
+      list-style: none;
+      font-size: 0.85rem;
+      color: #374151;
+    }
+
+    .modal li {
+      padding: 7px 0;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .modal a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .modal a:hover {
+      text-decoration: underline;
+    }
+
+    .modal-footer {
+      margin-top: 20px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Popup Leaflet personnalisé */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      padding: 4px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .leaflet-popup-content {
+      margin: 12px 14px;
+      line-height: 1.4;
+      font-size: 0.85rem;
+    }
+
+    .pav-popup {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 220px;
+    }
+
+    .pav-badge-wrapper {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .pav-type-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #ffffff;
+      background: var(--pav-color);
+    }
+
+    .pav-city-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      color: #4b5563;
+      text-transform: capitalize;
+    }
+
+    .pav-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #111827;
+      margin-top: 2px;
+    }
+
+    .pav-address {
+      font-size: 0.82rem;
+      color: #4b5563;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    .pav-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .pav-action-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .btn-maps {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .btn-maps:hover {
+      background: #dcfce7;
+    }
+
+    .btn-source {
+      background: #f3f4f6;
+      color: #4b5563;
+      border: 1px solid #e5e7eb;
+    }
+    .btn-source:hover {
+      background: #e5e7eb;
+    }
+
+    /* Écran de chargement */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(6px);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: opacity 0.3s ease;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #e5e7eb;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Notification toast */
+    .toast {
+      position: absolute;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: #1f2937;
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 2500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 640px) {
+      .top-bar {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+      }
+      .top-header {
+        padding: 8px 12px;
+      }
+      .brand-title {
+        font-size: 0.95rem;
+      }
+      .brand-subtitle {
+        display: none;
+      }
+      .legend-badge {
+        bottom: 12px;
+        left: 8px;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+      }
+      .geo-btn {
+        bottom: 12px;
+        right: 8px;
+        padding: 8px 12px;
+        font-size: 0.75rem;
+      }
+      .geo-btn span {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
 
+  <!-- Écran de chargement initial -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div style="font-weight: 600; color: #14532d; font-size: 0.95rem;">Chargement des points d'apport volontaire...</div>
+    <div id="loading-detail" style="font-size: 0.8rem; color: #6b7280;">Récupération de data/pav.geojson</div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Barre supérieure : Marque + Filtres par Métropole -->
+  <div class="top-bar">
+    <div class="top-header">
+      <a href="#" class="brand" onclick="window.location.reload(); return false;">
+        <div class="brand-icon">🌱</div>
+        <div>
+          <div class="brand-title">PAVfinder</div>
+          <div class="brand-subtitle">PAV Déchets Alimentaires & Biodéchets</div>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <span class="badge-count" id="total-badge">... PAV</span>
+        <button class="btn-icon" id="info-btn" title="Informations et sources open data" aria-label="Informations">
+          ℹ️
+        </button>
+      </div>
+    </div>
+
+    <!-- Sélecteur de métropole -->
+    <div class="filter-bar" id="city-filters">
+      <button class="city-btn active" data-city="all">
+        Toutes les villes <span class="count" id="count-all">...</span>
+      </button>
+      <button class="city-btn" data-city="paris">
+        Paris <span class="count" id="count-paris">...</span>
+      </button>
+      <button class="city-btn" data-city="lyon">
+        Lyon <span class="count" id="count-lyon">...</span>
+      </button>
+      <button class="city-btn" data-city="toulouse">
+        Toulouse <span class="count" id="count-toulouse">...</span>
+      </button>
+      <button class="city-btn" data-city="nantes">
+        Nantes <span class="count" id="count-nantes">...</span>
+      </button>
+      <button class="city-btn" data-city="bordeaux">
+        Bordeaux <span class="count" id="count-bordeaux">...</span>
+      </button>
+      <button class="city-btn" data-city="montpellier">
+        Montpellier <span class="count" id="count-montpellier">...</span>
+      </button>
+      <button class="city-btn" data-city="rennes">
+        Rennes <span class="count" id="count-rennes">...</span>
+      </button>
+      <button class="city-btn" data-city="lille">
+        Lille <span class="count" id="count-lille">...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Conteneur Carte Leaflet -->
+  <div id="map"></div>
+
+  <!-- Légende unique -->
+  <div class="legend-badge" id="legend">
+    <span class="legend-dot"></span>
+    <span>PAV Déchets Alimentaires / Biodéchets</span>
+  </div>
+
+  <!-- Bouton Géolocalisation -->
+  <button class="geo-btn" id="geo-btn" title="Me localiser sur la carte">
+    📍 <span>Autour de moi</span>
+  </button>
+
+  <!-- Modale d'informations / sources -->
+  <div class="modal-backdrop" id="info-modal">
+    <div class="modal">
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+      <h2>À propos de PAVfinder</h2>
+      <p>
+        <strong>PAVfinder</strong> recense exclusivement les <strong>Points d'Apport Volontaire (PAV)</strong> de déchets alimentaires et biodéchets mis à disposition du public dans 8 grandes métropoles françaises (abri-bacs, bornes et colonnes de collecte).
+      </p>
+      <p style="font-size: 0.8rem; background: #f0fdf4; padding: 8px 12px; border-radius: 8px; border: 1px solid #bbf7d0; color: #166534;">
+        🌿 <strong>Périmètre :</strong> Bornes d'apport volontaire uniquement (les composteurs collectifs ou partagés de quartier sont exclus). Le tri à la source des biodéchets est généralisé conformément à la loi AGEC pour valoriser la matière organique.
+      </p>
+
+      <h3>Sources de données officielles (Licence Ouverte / ODbL) :</h3>
+      <ul>
+        <li>
+          <strong>Paris</strong> : Abri-bacs (PAVDA) & Stations Trilib
+          <a href="https://opendata.paris.fr" target="_blank" rel="noopener">opendata.paris.fr ↗</a>
+        </li>
+        <li>
+          <strong>Métropole de Lyon</strong> : Bornes à compost
+          <a href="https://data.grandlyon.com" target="_blank" rel="noopener">data.grandlyon.com ↗</a>
+        </li>
+        <li>
+          <strong>Toulouse Métropole</strong> : PAV déchets alimentaires
+          <a href="https://data.toulouse-metropole.fr" target="_blank" rel="noopener">data.toulouse-metropole.fr ↗</a>
+        </li>
+        <li>
+          <strong>Nantes Métropole</strong> : Points de collecte biodéchets
+          <a href="https://data.nantesmetropole.fr" target="_blank" rel="noopener">data.nantesmetropole.fr ↗</a>
+        </li>
+        <li>
+          <strong>Bordeaux Métropole</strong> : Emplacements PAV biodéchets (en_empac_p)
+          <a href="https://datahub.bordeaux-metropole.fr" target="_blank" rel="noopener">datahub.bordeaux-metropole.fr ↗</a>
+        </li>
+        <li>
+          <strong>Montpellier 3M</strong> : PAV biodéchets
+          <a href="https://data.montpellier3m.fr" target="_blank" rel="noopener">data.montpellier3m.fr ↗</a>
+        </li>
+        <li>
+          <strong>Rennes Métropole</strong> : PAV déchets alimentaires
+          <a href="https://data.rennesmetropole.fr" target="_blank" rel="noopener">data.rennesmetropole.fr ↗</a>
+        </li>
+        <li>
+          <strong>Métropole Européenne de Lille</strong> : PAV déchets alimentaires
+          <a href="https://pav-dechets-alimentaires.lillemetropole.fr/" target="_blank" rel="noopener">pav-dechets-alimentaires.lillemetropole.fr ↗</a>
+        </li>
+      </ul>
+
+      <div class="modal-footer">
+        <span id="modal-updated-at">Données à jour</span>
+        <span>Hébergé sur GitHub Pages</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts CDN Leaflet & MarkerCluster -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script>
+    // Style et icône unique pour tous les points PAV
+    const PAV_COLOR = '#16a34a'; // Vert végétal
+    const PAV_ICON_HTML = `
+      <div style="
+        background-color: ${PAV_COLOR};
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+          <path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+      </div>
+    `;
+
+    const pavCustomIcon = L.divIcon({
+      className: 'custom-pav-marker',
+      html: PAV_ICON_HTML,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+      popupAnchor: [0, -11]
+    });
+
+    // Coordonnées par défaut des métropoles pour zoom direct
+    const CITY_CENTERS = {
+      all: { center: [46.603354, 1.888334], zoom: 6 },
+      paris: { center: [48.8566, 2.3522], zoom: 12 },
+      lyon: { center: [45.7640, 4.8357], zoom: 12 },
+      toulouse: { center: [43.6047, 1.4442], zoom: 12 },
+      nantes: { center: [47.2184, -1.5536], zoom: 12 },
+      bordeaux: { center: [44.8378, -0.5792], zoom: 12 },
+      montpellier: { center: [43.6108, 3.8767], zoom: 12 },
+      rennes: { center: [48.1173, -1.6778], zoom: 12 },
+      lille: { center: [50.6292, 3.0573], zoom: 12 }
+    };
+
+    // Variables d'état
+    let map;
+    let markerClusterGroup;
+    let allFeatures = [];
+    let currentCityFilter = 'all';
+    let userMarker = null;
+    let userCircle = null;
+
+    // Toast helper
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    // Initialisation de la carte Leaflet
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: true
+      }).setView(CITY_CENTERS.all.center, CITY_CENTERS.all.zoom);
+
+      // Contrôle de zoom en bas à droite
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // Fond de carte OpenStreetMap
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs | <a href="#" id="attr-info">PAVfinder</a>'
+      }).addTo(map);
+
+      // Groupe MarkerCluster haute performance
+      markerClusterGroup = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: function(cluster) {
+          const count = cluster.getChildCount();
+          let c = 'small';
+          if (count > 50) c = 'medium';
+          if (count > 200) c = 'large';
+          return new L.DivIcon({
+            html: `<div><span>${count}</span></div>`,
+            className: `marker-cluster marker-cluster-${c}`,
+            iconSize: new L.Point(40, 40)
+          });
+        }
+      });
+      map.addLayer(markerClusterGroup);
+
+      // Gestion du lien attribution info
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'attr-info') {
+          e.preventDefault();
+          toggleModal(true);
+        }
+      });
+    }
+
+    // Génération du contenu HTML de la popup
+    function createPopupContent(props, lat, lon) {
+      const nom = props.nom || "PAV Déchets Alimentaires";
+      const adresse = props.adresse || 'Adresse non spécifiée';
+      const ville = props.ville || '';
+      const source = props.source || 'Open Data';
+      const sourceUrl = props.source_url || '#';
+
+      const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+
+      return `
+        <div class="pav-popup">
+          <div class="pav-badge-wrapper">
+            <span class="pav-type-badge">PAV Biodéchets</span>
+            <span class="pav-city-badge">${ville}</span>
+          </div>
+          <div class="pav-title">${escapeHtml(nom)}</div>
+          <div class="pav-address">
+            <span>📍</span>
+            <span>${escapeHtml(adresse)}</span>
+          </div>
+          <div class="pav-actions">
+            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="pav-action-btn btn-maps" title="Calculer l'itinéraire">
+              🧭 Itinéraire
+            </a>
+            <a href="${sourceUrl}" target="_blank" rel="noopener" class="pav-action-btn btn-source" title="Voir sur le portail ${source}">
+              🔗 ${escapeHtml(source)}
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Filtrage et affichage des marqueurs
+    function renderMarkers(cityFilter) {
+      currentCityFilter = cityFilter;
+      markerClusterGroup.clearLayers();
+
+      const filtered = cityFilter === 'all' 
+        ? allFeatures 
+        : allFeatures.filter(f => f.properties && f.properties.ville === cityFilter);
+
+      const markers = [];
+      const bounds = L.latLngBounds();
+
+      filtered.forEach(ft => {
+        if (!ft.geometry || !ft.geometry.coordinates) return;
+        const [lon, lat] = ft.geometry.coordinates;
+        const marker = L.marker([lat, lon], {
+          icon: pavCustomIcon
+        });
+        marker.bindPopup(() => createPopupContent(ft.properties, lat, lon));
+        markers.push(marker);
+        bounds.extend([lat, lon]);
+      });
+
+      markerClusterGroup.addLayers(markers);
+
+      // Ajustement de la vue caméra
+      if (markers.length > 0) {
+        if (cityFilter === 'all') {
+          map.setView(CITY_CENTERS.all.center, CITY_CENTERS.all.zoom);
+        } else if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+        }
+      } else if (CITY_CENTERS[cityFilter]) {
+        map.setView(CITY_CENTERS[cityFilter].center, CITY_CENTERS[cityFilter].zoom);
+      }
+
+      if (filtered.length === 0) {
+        showToast(`Aucun point trouvé pour cette métropole.`);
+      }
+    }
+
+    // Chargement du fichier GeoJSON statique
+    async function loadData() {
+      try {
+        const response = await fetch('data/pav.geojson');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} lors de la lecture de data/pav.geojson`);
+        }
+        const data = await response.json();
+        allFeatures = data.features || [];
+
+        // Mise à jour des compteurs
+        const meta = data.metadata || {};
+        const total = meta.total_count || allFeatures.length;
+        document.getElementById('total-badge').textContent = `${total.toLocaleString('fr-FR')} PAV`;
+        document.getElementById('count-all').textContent = total.toLocaleString('fr-FR');
+
+        const villesCounts = meta.villes || {};
+        ['paris', 'lyon', 'toulouse', 'nantes', 'bordeaux', 'montpellier', 'rennes', 'lille'].forEach(city => {
+          const el = document.getElementById(`count-${city}`);
+          if (el) {
+            const cnt = villesCounts[city] !== undefined 
+              ? villesCounts[city] 
+              : allFeatures.filter(f => f.properties && f.properties.ville === city).length;
+            el.textContent = cnt.toLocaleString('fr-FR');
+          }
+        });
+
+        if (meta.updated_at) {
+          const d = new Date(meta.updated_at);
+          const formatted = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+          document.getElementById('modal-updated-at').textContent = `Données générées le ${formatted}`;
+        }
+
+        renderMarkers('all');
+
+        // Masquer l'écran de chargement
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 300);
+
+      } catch (err) {
+        console.error('Erreur chargement:', err);
+        document.getElementById('loading-detail').innerHTML = `
+          <span style="color:#dc2626;">Erreur de chargement des données.</span><br>
+          Vérifiez que le fichier <code>data/pav.geojson</code> a été généré avec <code>scripts/transform.py</code>.
+        `;
+      }
+    }
+
+    // Gestion des clics sur les boutons de métropole
+    function setupFilters() {
+      const container = document.getElementById('city-filters');
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.city-btn');
+        if (!btn) return;
+        const city = btn.dataset.city;
+
+        document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Défiler pour centrer le bouton sur mobile
+        btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+
+        renderMarkers(city);
+      });
+    }
+
+    // Calcul de distance Haversine en mètres
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // Rayon de la Terre en mètres
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // Géolocalisation de l'utilisateur
+    function setupGeolocation() {
+      const geoBtn = document.getElementById('geo-btn');
+
+      geoBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showToast("La géolocalisation n'est pas supportée par votre navigateur.");
+          return;
+        }
+
+        geoBtn.classList.add('loading');
+        geoBtn.innerHTML = `⏳ <span>Localisation...</span>`;
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            geoBtn.classList.remove('loading');
+            geoBtn.innerHTML = `📍 <span>Autour de moi</span>`;
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            const accuracy = pos.coords.accuracy;
+
+            // Supprimer anciens repères utilisateur
+            if (userMarker) map.removeLayer(userMarker);
+            if (userCircle) map.removeLayer(userCircle);
+
+            userCircle = L.circle([lat, lon], {
+              radius: accuracy,
+              color: '#3b82f6',
+              fillColor: '#60a5fa',
+              fillOpacity: 0.15,
+              weight: 1
+            }).addTo(map);
+
+            const userIcon = L.divIcon({
+              className: 'user-position-icon',
+              html: `
+                <div style="
+                  background: #2563eb;
+                  width: 16px;
+                  height: 16px;
+                  border-radius: 50%;
+                  border: 3px solid #ffffff;
+                  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+                "></div>
+              `,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
+            });
+
+            userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map);
+            userMarker.bindPopup("<b>Vous êtes ici</b><br>Précision : ~" + Math.round(accuracy) + " m").openPopup();
+
+            map.setView([lat, lon], 15);
+
+            // Trouver le PAV le plus proche
+            if (allFeatures.length > 0) {
+              let closest = null;
+              let minDistance = Infinity;
+
+              allFeatures.forEach(ft => {
+                const [pLon, pLat] = ft.geometry.coordinates;
+                const dist = haversineDistance(lat, lon, pLat, pLon);
+                if (dist < minDistance) {
+                  minDistance = dist;
+                  closest = ft;
+                }
+              });
+
+              if (closest && minDistance < 50000) {
+                const distKm = minDistance >= 1000 
+                  ? `${(minDistance / 1000).toFixed(1)} km` 
+                  : `${Math.round(minDistance)} m`;
+                showToast(`PAV le plus proche (${closest.properties.ville}) à ${distKm}`);
+              }
+            }
+          },
+          (err) => {
+            geoBtn.classList.remove('loading');
+            geoBtn.innerHTML = `📍 <span>Autour de moi</span>`;
+            let msg = "Impossible d'obtenir votre position.";
+            if (err.code === 1) msg = "Accès à la géolocalisation refusé.";
+            else if (err.code === 2) msg = "Position indisponible.";
+            else if (err.code === 3) msg = "Délai de géolocalisation dépassé.";
+            showToast(msg);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+      });
+    }
+
+    // Gestion modale d'information
+    function toggleModal(open) {
+      const modal = document.getElementById('info-modal');
+      if (open) modal.classList.add('open');
+      else modal.classList.remove('open');
+    }
+
+    function setupModal() {
+      document.getElementById('info-btn').addEventListener('click', () => toggleModal(true));
+      document.getElementById('modal-close-btn').addEventListener('click', () => toggleModal(false));
+      document.getElementById('info-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'info-modal') toggleModal(false);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') toggleModal(false);
+      });
+    }
+
+    // Démarrage au chargement du DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      setupFilters();
+      setupGeolocation();
+      setupModal();
+      loadData();
+    });
+  </script>
 </body>
 </html>
-

@@ -1,0 +1,11 @@
+# Données brutes téléchargées hors-ligne (seul data/pav.geojson est commité)
+data/raw/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store
+Thumbs.db
+
