@@ -1,6 +1,6 @@
-# ♻️ PAVfinder — Carte des PAV de Déchets Alimentaires & Biodéchets
+# ♻️ OùJeterMesBiodéchets.fr — Carte des PAV de Déchets Alimentaires & Biodéchets
 
-**PAVfinder** est une application web statique, légère et interactive hébergée sur **GitHub Pages**, répertoriant exclusivement les **Points d'Apport Volontaire (PAV)** de déchets alimentaires et biodéchets dans **8 métropoles principales** ainsi que dans les **autres villes** françaises disposant de données ouvertes.
+**OùJeterMesBiodéchets.fr** est une application web statique, légère et interactive hébergée sur **GitHub Pages**, répertoriant exclusivement les **Points d'Apport Volontaire (PAV)** de déchets alimentaires et biodéchets dans les métropoles et villes françaises disposant de données ouvertes.
 
 L'application facilite le tri à la source des biodéchets (généralisé conformément à la loi AGEC) en permettant aux habitants de repérer en quelques secondes la borne de collecte la plus proche.
 
@@ -12,11 +12,11 @@ L'application facilite le tri à la source des biodéchets (généralisé confor
 
 - **Mise en page épurée avec colonne latérale gauche (sidebar)** :
   - **Pas de bandeau supérieur horizontal** encombrant : la carte occupe tout l'espace disponible à droite de la sidebar.
-  - **En-tête de la sidebar** : Nom de l'application (PAVFinder), compteur de PAV affichés mis à jour dynamiquement selon la sélection, et bouton **« À propos »** ouvrant une modale explicative complète (sources, licences, date, GitHub).
+  - **En-tête de la sidebar** : Nom de l'application (**OùJeterMesBiodéchets.fr**), compteur de PAV affichés mis à jour dynamiquement selon la sélection, et bouton **« À propos »** ouvrant une modale explicative complète (sources, licences, date, GitHub).
   - **Barre de recherche d'adresse** : Autocomplétion officielle instantanée basée sur l'API nationale de la Base Adresse Nationale ([adresse.data.gouv.fr](https://adresse.data.gouv.fr/)), avec zoom et calcul de distance jusqu'à la borne la plus proche.
   - **Bouton « Autour de moi »** : Positionné immédiatement à côté du champ de recherche dans la sidebar pour géolocaliser l'usager (`navigator.geolocation`) sans jamais empiéter sur les contrôles de zoom de Leaflet.
-  - **Liste des villes en colonne** : Défilement vertical fluide, bouton « Toutes les villes » en tête de liste, distinction entre les 8 métropoles principales et les autres villes avec compteurs individuels.
-  - **Pied de sidebar avec légende** : Explication claire à 2 entrées (vert pour les 8 métropoles, rouge pour les autres villes) et rappel du périmètre strict.
+  - **Liste des villes en colonne** : Défilement vertical fluide, bouton « Toutes les villes » en tête de liste, distinction entre les villes principales et les autres villes avec compteurs individuels.
+  - **Pied de sidebar avec légende** : Explication claire à 2 entrées (vert pour les villes principales, rouge pour les autres villes) et rappel du périmètre strict.
 - **Carte interactive plein écran** basée sur [Leaflet](https://leafletjs.com/) et [OpenStreetMap](https://www.openstreetmap.org/).
 - **Codes couleur & distinction géographique** :
   - 🟢 **Vert** : Les villes et métropoles principales (Paris, Lyon, Marseille/Aix, Toulouse, Nantes, Bordeaux, Montpellier, Strasbourg, Rennes, Lille, Tours, Issy/GPSO).

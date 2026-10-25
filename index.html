@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PAVfinder — Carte des PAV de déchets alimentaires</title>
-  <meta name="description" content="Carte interactive des points d'apport volontaire (PAV) de déchets alimentaires et biodéchets dans 8 métropoles et autres villes françaises : Paris, Lyon, Toulouse, Nantes, Bordeaux, Montpellier, Rennes, Lille, Strasbourg, Mulhouse, Marseille...">
+  <title>OùJeterMesBiodéchets.fr — Carte des PAV de déchets alimentaires</title>
+  <meta name="description" content="OùJeterMesBiodéchets.fr : Carte interactive des points d'apport volontaire (PAV) de déchets alimentaires et biodéchets dans les métropoles et villes françaises : Paris, Lyon, Marseille, Toulouse, Nantes, Bordeaux, Montpellier, Strasbourg, Rennes, Lille, Tours, Issy/GPSO...">
 
   <!-- Favicon SVG -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
@@ -86,9 +86,10 @@
 
     .mobile-title {
       font-weight: 750;
-      font-size: 1.05rem;
+      font-size: 0.92rem;
       letter-spacing: -0.02em;
       color: var(--primary-dark);
+      white-space: nowrap;
     }
 
     .hamburger-btn {
@@ -185,10 +186,11 @@
 
     .brand-title {
       font-weight: 800;
-      font-size: 1.15rem;
+      font-size: 1.02rem;
       letter-spacing: -0.02em;
       color: var(--primary-dark);
       line-height: 1.1;
+      white-space: nowrap;
     }
 
     .brand-tagline {
@@ -961,7 +963,7 @@
     </button>
     <div class="mobile-brand" onclick="resetToAll();">
       <span style="font-size: 1.25rem;">🌱</span>
-      <span class="mobile-title">PAVFinder</span>
+      <span class="mobile-title">OùJeterMesBiodéchets.fr</span>
     </div>
     <div class="mobile-actions">
       <span class="mobile-badge" id="mobile-count-badge">... PAV</span>
@@ -983,7 +985,7 @@
           <div class="brand-title-wrap" onclick="resetToAll();" title="Réinitialiser l'affichage">
             <div class="brand-icon">🌱</div>
             <div>
-              <h1 class="brand-title">PAVFinder</h1>
+              <h1 class="brand-title">OùJeterMesBiodéchets.fr</h1>
               <div class="brand-tagline">Déchets alimentaires & biodéchets</div>
             </div>
           </div>
@@ -1059,9 +1061,9 @@
   <div class="modal-backdrop" id="about-modal">
     <div class="modal">
       <button class="modal-close" id="modal-close-btn">&times;</button>
-      <h2>À propos de PAVFinder</h2>
+      <h2>À propos de OùJeterMesBiodéchets.fr</h2>
       <p>
-        <strong>PAVFinder</strong> est un outil cartographique interactif libre répertoriant exclusivement les <strong>Points d'Apport Volontaire (PAV)</strong> sur l'espace public (bornes d'apport volontaire, abri-bacs, colonnes) destinés aux <strong>déchets alimentaires et biodéchets</strong>.
+        <strong>OùJeterMesBiodéchets.fr</strong> est un outil cartographique interactif libre répertoriant exclusivement les <strong>Points d'Apport Volontaire (PAV)</strong> sur l'espace public (bornes d'apport volontaire, abri-bacs, colonnes) destinés aux <strong>déchets alimentaires et biodéchets</strong>.
       </p>
 
       <div style="font-size: 0.82rem; background: #fef2f2; padding: 10px 12px; border-radius: 8px; border: 1px solid #fecaca; color: #991b1b; margin-bottom: 12px;">
@@ -1269,7 +1271,7 @@
       // Fond de carte OpenStreetMap standard
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs | <a href="#" id="attr-info">PAVFinder</a>'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs | <a href="#" id="attr-info">OùJeterMesBiodéchets.fr</a>'
       }).addTo(map);
 
       // MarkerCluster haute performance

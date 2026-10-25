@@ -830,7 +830,7 @@ def main():
         "type": "FeatureCollection",
         "metadata": {
             "title": "Points d'Apport Volontaire (PAV) de déchets alimentaires et biodéchets",
-            "generator": "PAVfinder scripts/transform.py",
+            "generator": "OùJeterMesBiodéchets.fr scripts/transform.py",
             "updated_at": now_iso,
             "total_count": len(unique_features),
             "groupes": groupes_stats,
